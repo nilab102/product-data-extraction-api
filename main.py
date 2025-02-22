@@ -9,9 +9,14 @@ from servers.price_scrapper_server import router as price_router
 
 app.include_router(price_router, prefix="/price_router", tags=["Price Scrpper APIs"])
 
+
+from servers.email_scrapper_server import router as email_router
+
+app.include_router(email_router, prefix="/email_router", tags=["Email Scrpper APIs"])
+
 @app.get("/")
 async def root():
-    return {"message": "Product Data Extraction API is running."}
+    return {"message": "Product Data Extraction & Email Extraction API is running."}
 
 # To run via: uvicorn server:app --reload
 if __name__ == "__main__":
