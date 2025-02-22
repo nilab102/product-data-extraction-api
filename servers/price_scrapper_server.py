@@ -2,11 +2,11 @@ import json
 import requests
 import traceback
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-from config import (
+from price_scrapper.config import (
     SERPER_API_KEY,
     LLM_API_KEY,
     SERPER_URL,
@@ -16,15 +16,12 @@ from config import (
     CHUNK_SIZE,
     CHUNK_OVERLAP,
 )
-from model import initialize_llm, extract_product_data
-from util import clean_text
+from price_scrapper.model import initialize_llm, extract_product_data
+from price_scrapper.util import clean_text
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import BM25Retriever
-
-# FastAPI app initialization
-app = FastAPI(title="Product Data Extraction API")
-
+router = APIRouter()
 class SearchRequest(BaseModel):
     query: str
 
@@ -58,7 +55,7 @@ def filter_links(search_data: dict) -> List[str]:
             links.append(link)
     return links
 
-@app.post("/search")
+@router.post("/search")
 async def search_endpoint(request: SearchRequest):
     query = request.query
     try:
@@ -169,12 +166,3 @@ Provide the most accurate and concise response based on the context and query:
     final_output = extract_product_data(final_responses)
     
     return {"results": final_output}
-
-@app.get("/")
-async def root():
-    return {"message": "Product Data Extraction API is running."}
-
-# To run via: uvicorn server:app --reload
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

@@ -3,7 +3,7 @@ import re
 from langchain.schema import Document
 from langchain_groq import ChatGroq
 
-def initialize_llm(api_key: str, temperature: int = 0, model_name: str = "qwen-2.5-32b") -> ChatGroq:
+def initialize_llm(api_key: str, temperature: int = 0, model_name: str = "llama3-8b-8192") -> ChatGroq:
     """
     Initialize and return the ChatGroq LLM instance.
     """
