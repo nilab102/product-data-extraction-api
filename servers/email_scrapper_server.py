@@ -149,8 +149,9 @@ Metadata: {metadata}
 Provide the most accurate and concise response based on the context and query:
 """
         try:
-            response = llm.invoke(prompt_with_context)
-            final_responses.append({"response": response.content, "metadata": metadata})
+            #response = llm.invoke(prompt_with_context)
+            #final_responses.append({"response": response.content, "metadata": metadata})
+            final_responses.append({"response": context, "metadata": metadata})
             print(f"processing chunk {i+1}")
         except Exception as e:
             print(f"Error processing chunk {i+1}: {e}")
