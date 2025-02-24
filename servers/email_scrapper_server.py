@@ -79,7 +79,8 @@ async def search_endpoint(request: SearchRequest):
         try:
             text_content = clean_text(url,method="notzenrows")
             # Limit document length if necessary
-            documents.append(Document(page_content=(text_content[:5000] + text_content[-5000:]), metadata={"source": url}))
+            #documents.append(Document(page_content=(text_content[:5000] + text_content[-5000:]), metadata={"source": url}))
+            documents.append(Document(page_content=text_content, metadata={"source": url}))          
         except Exception as e:
             print(f"Error processing {url}: {e}")
     
