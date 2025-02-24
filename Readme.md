@@ -62,7 +62,7 @@ This repository contains a **Product Data Extraction API** built with [FastAPI](
 Start the FastAPI server using Uvicorn:
 
 ```bash
-uvicorn server:app --reload
+python main.py
 ```
 
 The API will be accessible at [http://localhost:8000](http://localhost:8000).
