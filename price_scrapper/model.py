@@ -48,6 +48,9 @@ def extract_product_data(responses: list) -> list:
                     source = product.get("source")
                     vat_status = product.get("vat_status")
                     payment_type = product.get("payment_type")
+                    features_of_product=product.get("features_of_product")
+                    vendor_name= product.get("vendor_name")
+                    customer_rating=product.get("customer_rating")
                     if product_name and price and currency and source:
                         # Clean and convert the price
                         cleaned_price = re.sub(r'[^\d.]', '', str(price))
@@ -63,7 +66,10 @@ def extract_product_data(responses: list) -> list:
                             "currency": currency,
                             "source": source,
                             "vat_status" : vat_status,
-                            "payment_type" : payment_type 
+                            "payment_type" : payment_type, 
+                            "features_of_product" : features_of_product,
+                            "vendor_name" : vendor_name,
+                            "customer_rating" : customer_rating
                         })
             except json.JSONDecodeError:
                 print(f"Invalid JSON found: {match}")
