@@ -79,7 +79,8 @@ async def search_endpoint(request: SearchRequest):
         try:
             text_content = clean_text(url,method="notzenrows")
             # Limit document length if necessary
-            documents.append(Document(page_content=(text_content[:5000] + text_content[-5000:]), metadata={"source": url}))
+            #documents.append(Document(page_content=(text_content[:5000] + text_content[-5000:]), metadata={"source": url}))
+            documents.append(Document(page_content=text_content, metadata={"source": url}))          
         except Exception as e:
             print(f"Error processing {url}: {e}")
     
@@ -149,8 +150,9 @@ Metadata: {metadata}
 Provide the most accurate and concise response based on the context and query:
 """
         try:
-            response = llm.invoke(prompt_with_context)
-            final_responses.append({"response": response.content, "metadata": metadata})
+            #response = llm.invoke(prompt_with_context)
+            #final_responses.append({"response": response.content, "metadata": metadata})
+            final_responses.append({"response": context, "metadata": metadata})
             print(f"processing chunk {i+1}")
         except Exception as e:
             print(f"Error processing chunk {i+1}: {e}")

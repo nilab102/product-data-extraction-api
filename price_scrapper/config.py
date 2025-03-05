@@ -24,7 +24,7 @@ ALLOWED_DOMAINS = [
 ]
 
 # Chunking settings
-CHUNK_SIZE = 5000
+CHUNK_SIZE = 10000
 CHUNK_OVERLAP = 500
 
 # Selenium Chrome options (if you wish to customize further)

@@ -30,33 +30,67 @@ def process_query_across_chunks(query: str, chunked_docs: list, llm: ChatGroq) -
             print(f"Error processing chunk {i + 1}: {e}")
     return responses
 
+# def extract_email_data(responses: list) -> list:
+#     """
+#     Extracts and normalizes email address from LLM responses.
+#     """
+#     final_data = []
+#     for res in responses:
+#         # Extract JSON-like sections from the response
+#         json_matches = re.findall(r'\[.*?\]', res["response"], re.DOTALL)
+#         for match in json_matches:
+#             try:
+#                 email_entries = json.loads(match)
+#                 for entry in email_entries:
+#                     email = entry.get("email")
+#                     source = entry.get("source")  # Retrieve the source from metadata
+
+#                     # Ensure both email and source exist and the email is in a valid format
+#                     if email and source:
+#                         if re.fullmatch(r"[^@]+@[^@]+\.[^@]+", email):
+#                             final_data.append({
+#                                 "email": email,
+#                                 "source": source
+#                             })
+#                         else:
+#                             print(f"Invalid email format: {email}")
+#             except json.JSONDecodeError:
+#                 print(f"Invalid JSON found: {match}")
+
+#     # Optionally sort entries alphabetically by email
+#     final_data.sort(key=lambda x: x["email"])
+#     return final_data
+
+import re
+
 def extract_email_data(responses: list) -> list:
     """
-    Extracts and normalizes email address from LLM responses.
+    Extracts email addresses from LLM responses by scraping text using regex.
     """
+    # Define a regex pattern for matching email addresses
+    email_regex = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
     final_data = []
+
+    # Loop through each response
     for res in responses:
-        # Extract JSON-like sections from the response
-        json_matches = re.findall(r'\[.*?\]', res["response"], re.DOTALL)
-        for match in json_matches:
-            try:
-                email_entries = json.loads(match)
-                for entry in email_entries:
-                    email = entry.get("email")
-                    source = entry.get("source")  # Retrieve the source from metadata
+        text = res["response"]
+        # Use regex to find all email addresses in the text
+        emails = re.findall(email_regex, text)
+        # Retrieve the source from metadata; default to "Unknown" if not provided
+        source = res["metadata"].get("source", "Unknown")
+        for email in emails:
+            final_data.append({
+                "email": email,
+                "source": source
+            })
 
-                    # Ensure both email and source exist and the email is in a valid format
-                    if email and source:
-                        if re.fullmatch(r"[^@]+@[^@]+\.[^@]+", email):
-                            final_data.append({
-                                "email": email,
-                                "source": source
-                            })
-                        else:
-                            print(f"Invalid email format: {email}")
-            except json.JSONDecodeError:
-                print(f"Invalid JSON found: {match}")
+    # Remove duplicate entries by using a set keyed on (email, source)
+    unique_emails = {}
+    for item in final_data:
+        key = (item["email"], item["source"])
+        unique_emails[key] = item
 
-    # Optionally sort entries alphabetically by email
-    final_data.sort(key=lambda x: x["email"])
-    return final_data
+    # Convert the dictionary back to a list and sort alphabetically by email
+    results = list(unique_emails.values())
+    results.sort(key=lambda x: x["email"])
+    return results

@@ -51,9 +51,15 @@ def filter_links(search_data: dict) -> List[str]:
     links = []
     for item in search_data.get("organic", []):
         link = item.get("link")
-        if link and any(domain in link for domain in ALLOWED_DOMAINS):
+        # if link and any(domain in link for domain in ALLOWED_DOMAINS):
+        #     links.append(link)
+        if link:
             links.append(link)
-    return links
+    # Deduplicate links while preserving order
+    unique_links = list(dict.fromkeys(links))
+    print(f"number of links {unique_links}")
+    return unique_links
+
 
 @router.post("/search")
 async def search_endpoint(request: SearchRequest):
@@ -74,7 +80,7 @@ async def search_endpoint(request: SearchRequest):
         try:
             text_content = clean_text(url,method="notzenrows")
             # Limit document length if necessary
-            documents.append(Document(page_content=text_content[:5000], metadata={"source": url}))
+            documents.append(Document(page_content=text_content[:10000], metadata={"source": url}))
         except Exception as e:
             print(f"Error processing {url}: {e}")
     
@@ -93,7 +99,7 @@ async def search_endpoint(request: SearchRequest):
     bm25_retriever = BM25Retriever.from_documents(
         [Document(page_content=chunk["page_content"], metadata=chunk["metadata"]) for chunk in chunked_docs]
     )
-    bm25_retriever.k = 10  # Retrieve top 10 relevant chunks
+    bm25_retriever.k = 20  # Retrieve top 10 relevant chunks
     retrieved_chunks = bm25_retriever.get_relevant_documents(query)
     
     # Define the detailed query prompt for extraction
@@ -106,7 +112,11 @@ async def search_endpoint(request: SearchRequest):
     3. **"currency"**: The currency in which the price is denominated, extracted from the document.
     4. **"vat_status"**: A string indicating whether the price is after vat or before vat. Only include this field if the document explicitly provides this information.
     5. **"payment_type"**: A string that indicates whether the payment is a "one time payment" or an "installment", based on explicit information in the document. If the payment type is not explicitly provided, do not include this field.
-    6. **"source"**: The URL of the document from which the product details were extracted.
+    6. **"vendor_name"**: The name of the vendor selling the product, exactly as provided in the document. Exclude this field if the vendor name is incomplete or not explicitly stated.
+    7. **"features_of_product"**: Details on the features of the product as provided in the document. Include this field only if the information is complete and reliable.
+    8. **"source"**: The URL of the document from which the product details were extracted.
+    9. **"customer_rating"**: The customer rating for the product as provided in the document. Include this field only if the information is explicitly stated and complete.
+
 
     ### Output Style:
     [
@@ -116,7 +126,10 @@ async def search_endpoint(request: SearchRequest):
             "currency": "Currency code (e.g., USD, SAR)",
             "vat_status": "after vat / before vat",
             "payment_type": "one time payment / installment",
-            "source": "URL of the document"
+            "vendor_name": "Vendor name as per document",
+            "features_of_product": "Product features details, if provided",
+            "source": "URL of the document",
+            "customer_rating": "Customer rating details if available"
         }},
         {{
             "product_name": "Another valid product name",
@@ -124,7 +137,10 @@ async def search_endpoint(request: SearchRequest):
             "currency": "Currency code (e.g., USD, SAR)",
             "vat_status": "after vat / before vat",
             "payment_type": "one time payment / installment",
-            "source": "URL of the document"
+            "vendor_name": "Vendor name as per document",
+            "features_of_product": "Product features details, if provided",
+            "source": "URL of the document",
+            "customer_rating": "Customer rating details if available"
         }}
     ]
 
@@ -136,8 +152,10 @@ async def search_endpoint(request: SearchRequest):
     5. For the "currency" field, use the currency explicitly mentioned in the document.
     6. For the "vat_status" field, extract the information indicating if the price is before vat or after vat as stated in the document. If not explicitly stated, do not include this field.
     7. For the "payment_type" field, determine if the payment method is one time payment or installment as explicitly mentioned in the document. If not explicitly mentioned, do not include this field.
-    8. For the "source" field, use the URL provided in the document metadata.
-    9. If no valid information is available, output an empty JSON array.
+    8. For the "vendor_name" field, include the vendor name exactly as it appears in the document if it is complete and reliable.
+    9. For the "product_quality_review" field, include product review or quality information only if it is explicitly provided and complete.
+    10. For the "source" field, use the URL provided in the document metadata.
+    11. If no valid information is available, output an empty JSON array.
     '''
 
 
