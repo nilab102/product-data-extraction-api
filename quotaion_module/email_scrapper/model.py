@@ -61,8 +61,6 @@ def process_query_across_chunks(query: str, chunked_docs: list, llm: ChatGroq) -
 #     final_data.sort(key=lambda x: x["email"])
 #     return final_data
 
-import re
-
 def extract_email_data(responses: list) -> list:
     """
     Extracts email addresses from LLM responses by scraping text using regex.
@@ -93,4 +91,5 @@ def extract_email_data(responses: list) -> list:
     # Convert the dictionary back to a list and sort alphabetically by email
     results = list(unique_emails.values())
     results.sort(key=lambda x: x["email"])
+    print(results)
     return results

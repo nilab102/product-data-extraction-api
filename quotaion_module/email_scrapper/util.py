@@ -4,26 +4,75 @@ from bs4 import BeautifulSoup
 import html2text
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from quotaion_module.price_scrapper.config import CHROME_OPTIONS
+from quotaion_module.email_scrapper.config import CHROME_OPTIONS
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+import time  # For temporary debug
+from langchain.schema import Document
 from zenrows import ZenRowsClient  
 import os 
-def fetch_html_selenium(url: str, headless: bool = True) -> str:
-    """
-    Fetch HTML content from the given URL using Selenium.
-    """
-    chrome_options = Options()
-    for opt in CHROME_OPTIONS:
-        chrome_options.add_argument(opt)
+# def fetch_html_selenium(url: str, headless: bool = True) -> str:
+#     """
+#     Fetch HTML content from the given URL using Selenium.
+#     """
+#     chrome_options = Options()
+#     for opt in CHROME_OPTIONS:
+#         chrome_options.add_argument(opt)
         
+#     driver = webdriver.Chrome(options=chrome_options)
+#     try:
+#         driver.get(url)
+#         # Optionally: add explicit wait logic if needed
+#         html_content = driver.page_source
+#         return html_content
+#     finally:
+#         driver.quit()
+
+def fetch_html_selenium(url, wait_time=15):  # Increased wait_time to 15 <button class="citation-flag" data-index="7">
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")  # Use modern headless mode <button class="citation-flag" data-index="6">
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    
+    # Enhanced anti-detection measures <button class="citation-flag" data-index="7"><button class="citation-flag" data-index="10">
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    # Explicit JavaScript and network settings <button class="citation-flag" data-index="7">
+    chrome_options.add_experimental_option("prefs", {
+        "profile.managed_default_content_settings.javascript": 1,
+        "profile.default_content_setting_values.javascript": 1,
+        "network.http.referer.default_policy": 2  # Improve network behavior
+    })
+
     driver = webdriver.Chrome(options=chrome_options)
+    
     try:
         driver.get(url)
-        # Optionally: add explicit wait logic if needed
-        html_content = driver.page_source
-        return html_content
+        
+        # Primary wait: Document readiness <button class="citation-flag" data-index="4">
+        WebDriverWait(driver, wait_time).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
+        
+        # Secondary wait: Specific element indicating content load <button class="citation-flag" data-index="3">
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".store-list-item"))  # Replace with actual selector
+            )
+        except:  # Fallback if specific element not found
+            time.sleep(3)  # Temporary additional wait <button class="citation-flag" data-index="7">
+        html_content =driver.page_source
+        return html_content 
     finally:
         driver.quit()
 
+        
 def clean_html(html_content: str) -> str:
     """
     Cleans the HTML by removing headers, footers, images, ads, media, and unwanted text.
@@ -31,7 +80,7 @@ def clean_html(html_content: str) -> str:
     soup = BeautifulSoup(html_content, 'html.parser')
 
     # Remove headers and footers
-    for element in soup.find_all(['header', 'footer']):
+    for element in soup.find_all(['header']):
         element.decompose()
 
     # Remove images
@@ -76,10 +125,10 @@ def html_to_markdown_with_readability(html_content: str) -> str:
     """
     Converts cleaned HTML content to Markdown format.
     """
-    cleaned_html = clean_html(html_content)
+    #cleaned_html = clean_html(html_content)
     converter = html2text.HTML2Text()
     converter.ignore_links = False
-    markdown_content = converter.handle(cleaned_html)
+    markdown_content = converter.handle(html_content)
     return markdown_content
 
 def remove_urls_from_text(text: str) -> str:
@@ -137,3 +186,12 @@ def clean_text(url: str, method: str = "selenium") -> str:
     markdown = html_to_markdown_with_readability(html_content)
     text = remove_urls_from_text(markdown)
     return text
+
+
+# utils.py (add this function)
+def process_url(url, method):
+    try:
+        text_content = clean_text(url, method=method)
+        return Document(page_content=text_content, metadata={"source": url})
+    except Exception as e:
+        return (url, str(e))

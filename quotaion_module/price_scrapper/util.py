@@ -4,9 +4,10 @@ from bs4 import BeautifulSoup
 import html2text
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from quotaion_module.email_scrapper.config import CHROME_OPTIONS
+from quotaion_module.price_scrapper.config import CHROME_OPTIONS
 from zenrows import ZenRowsClient  
 import os 
+from langchain.schema import Document
 def fetch_html_selenium(url: str, headless: bool = True) -> str:
     """
     Fetch HTML content from the given URL using Selenium.
@@ -31,7 +32,7 @@ def clean_html(html_content: str) -> str:
     soup = BeautifulSoup(html_content, 'html.parser')
 
     # Remove headers and footers
-    for element in soup.find_all(['header']):
+    for element in soup.find_all(['header', 'footer']):
         element.decompose()
 
     # Remove images
@@ -137,3 +138,12 @@ def clean_text(url: str, method: str = "selenium") -> str:
     markdown = html_to_markdown_with_readability(html_content)
     text = remove_urls_from_text(markdown)
     return text
+
+
+# utils.py (add this function)
+def process_url(url, method):
+    try:
+        text_content = clean_text(url, method=method)
+        return Document(page_content=text_content[:10000], metadata={"source": url})
+    except Exception as e:
+        return (url, str(e))

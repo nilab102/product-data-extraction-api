@@ -17,10 +17,12 @@ from quotaion_module.price_scrapper.config import (
     CHUNK_OVERLAP,
 )
 from quotaion_module.price_scrapper.model import initialize_llm, extract_product_data
-from quotaion_module.price_scrapper.util import clean_text
+from quotaion_module.price_scrapper.util import clean_text,process_url
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.retrievers import BM25Retriever
+from langchain_community.retrievers import BM25Retriever
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 router = APIRouter()
 class SearchRequest(BaseModel):
     query: str
@@ -61,6 +63,7 @@ def filter_links(search_data: dict) -> List[str]:
     return unique_links
 
 
+
 @router.post("/search")
 async def search_endpoint(request: SearchRequest):
     query = request.query
@@ -76,16 +79,30 @@ async def search_endpoint(request: SearchRequest):
 
     # Process each link to extract cleaned text from the document
     documents = []
-    for url in links:
-        try:
-            text_content = clean_text(url,method="notzenrows")
-            # Limit document length if necessary
-            documents.append(Document(page_content=text_content[:10000], metadata={"source": url}))
-        except Exception as e:
-            print(f"Error processing {url}: {e}")
-    
-    if not documents:
-        raise HTTPException(status_code=404, detail="No documents could be processed.")
+    errors = []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        # Submit all tasks
+        futures = {
+            executor.submit(process_url, url, "notzenrows"): url
+            for url in links
+        }
+        
+        # Process results as they complete
+        for future in as_completed(futures):
+            url = futures[future]
+            try:
+                result = future.result()
+                if isinstance(result, tuple):  # Error case
+                    errors.append(result)
+                else:
+                    documents.append(result)
+            except Exception as e:
+                errors.append((url, str(e)))
+
+    # Print errors after processing
+    for url, error in errors:
+        print(f"Error processing {url}: {error}")
 
     # Split documents into smaller chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
@@ -177,6 +194,7 @@ Provide the most accurate and concise response based on the context and query:
         try:
             response = llm.invoke(prompt_with_context)
             final_responses.append({"response": response.content, "metadata": metadata})
+            print(f"processing chunk {i+1}")
         except Exception as e:
             print(f"Error processing chunk {i+1}: {e}")
     

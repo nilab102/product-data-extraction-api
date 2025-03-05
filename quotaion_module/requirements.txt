@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+beautifulsoup4
+html2text
+python-dotenv
+selenium
+requests
+langchain
+langchain-groq
+zenrows

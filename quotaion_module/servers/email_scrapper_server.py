@@ -17,10 +17,12 @@ from quotaion_module.email_scrapper.config import (
     CHUNK_OVERLAP,
 )
 from quotaion_module.email_scrapper.model import initialize_llm, extract_email_data
-from quotaion_module.email_scrapper.util import clean_text
+from quotaion_module.email_scrapper.util import clean_text,process_url
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.retrievers import BM25Retriever
+from langchain_community.retrievers import BM25Retriever
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 router = APIRouter()
 class SearchRequest(BaseModel):
     query: str
@@ -75,14 +77,30 @@ async def search_endpoint(request: SearchRequest):
 
     # Process each link to extract cleaned text from the document
     documents = []
-    for url in links:
-        try:
-            text_content = clean_text(url,method="notzenrows")
-            # Limit document length if necessary
-            #documents.append(Document(page_content=(text_content[:5000] + text_content[-5000:]), metadata={"source": url}))
-            documents.append(Document(page_content=text_content, metadata={"source": url}))          
-        except Exception as e:
-            print(f"Error processing {url}: {e}")
+    errors = []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        # Submit all tasks
+        futures = {
+            executor.submit(process_url, url, "notzenrows"): url
+            for url in links
+        }
+        
+        # Process results as they complete
+        for future in as_completed(futures):
+            url = futures[future]
+            try:
+                result = future.result()
+                if isinstance(result, tuple):  # Error case
+                    errors.append(result)
+                else:
+                    documents.append(result)
+            except Exception as e:
+                errors.append((url, str(e)))
+
+    # Print errors after processing
+    for url, error in errors:
+        print(f"Error processing {url}: {error}")
     
     if not documents:
         raise HTTPException(status_code=404, detail="No documents could be processed.")
@@ -100,7 +118,7 @@ async def search_endpoint(request: SearchRequest):
         [Document(page_content=chunk["page_content"], metadata=chunk["metadata"]) for chunk in chunked_docs]
     )
     bm25_retriever.k = 40  # Retrieve top 10 relevant chunks
-    retrieved_chunks = bm25_retriever.get_relevant_documents("email")
+    retrieved_chunks = bm25_retriever.get_relevant_documents("mail")
     
     # Define the detailed query prompt for extraction
     query_prompt = '''

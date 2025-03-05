@@ -1,16 +1,16 @@
-# Product Data Extraction API
+# Wholesaler email Extraction API
 
-This repository contains a **Product Data Extraction API** built with [FastAPI](https://fastapi.tiangolo.com/). It leverages multiple tools and services to search for product information online, clean and process HTML content, and extract structured product details using a language model.
+This repository contains a **Wholesaler email Extraction API** built with [FastAPI](https://fastapi.tiangolo.com/). It leverages multiple tools and services to search for  information online, clean and process HTML content, and extract structured details using a language model.
 
 ## Features
 
-- **Web Search Integration:** Uses the [Serper API](https://serper.dev/) to perform product-related searches.
+- **Web Search Integration:** Uses the [Serper API](https://serper.dev/) to perform searches.
 - **Content Retrieval:** Fetches HTML content from web pages using either Selenium or [ZenRows](https://www.zenrows.com/).
 - **HTML Cleaning & Conversion:** Cleans HTML content (removing headers, footers, ads, etc.) and converts it to Markdown for easier text processing.
 - **Document Chunking:** Splits lengthy documents into smaller chunks for efficient processing.
 - **Relevant Chunk Retrieval:** Uses BM25 retrieval (via Langchain) to select the most relevant document sections.
-- **LLM-Powered Extraction:** Leverages a ChatGroq language model to extract product details based on a detailed prompt.
-- **Structured Output:** Returns product details in JSON format, including fields such as `product_name`, `price`, `currency`, `vat_status`, `payment_type`, and `source`.
+- **LLM-Powered Extraction:** Leverages a ChatGroq language model to extract details based on a detailed prompt.
+- **Structured Output:** Returns details in JSON format, including fields such as `email`, `source`.
 
 ## Prerequisites
 
@@ -24,8 +24,8 @@ This repository contains a **Product Data Extraction API** built with [FastAPI](
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/guthyb.git
-   cd guthyb
+   git clone https://github.com/ESAP-Base-ERP/ESAP_HR_AI/tree/hr_merge_code
+   cd ESAP_HR_AI
    ```
 
 2. **Create and Activate a Virtual Environment:**
@@ -65,33 +65,23 @@ Start the FastAPI server using Uvicorn:
 python main.py
 ```
 
-The API will be accessible at [http://localhost:8000](http://localhost:8000).
+The API will be accessible at [http://localhost:9100](http://localhost:9100).
+
+## curl
+curl -N -X POST http://127.0.0.1:9100/email_router/search -H "Content-Type: application/json" -d "{\"query\": \"Sony Bravia wholesaler contact email in saudia arab\"}"
 
 ## API Endpoints
 
-### GET `/`
+### POST `/email_router/search`
 
 **Description:**  
-A simple health check endpoint.
-
-**Response:**
-
-```json
-{
-  "message": "Product Data Extraction API is running."
-}
-```
-
-### POST `/search`
-
-**Description:**  
-Searches for product data based on a query, processes relevant document chunks, and returns structured product details.
+Searches for Wholesaler email based on a query, processes relevant document chunks, and returns structured details.
 
 **Request Body Example:**
 
 ```json
 {
-  "query": "latest smartphone deals in Saudi Arabia"
+  "query": "Sony Bravia wholesaler contact email in saudia arab"
 }
 ```
 
@@ -100,15 +90,11 @@ Searches for product data based on a query, processes relevant document chunks, 
 ```json
 {
   "results": [
-    {
-      "product_name": "Smartphone XYZ - 128GB, Black",
-      "price": 999.99,
-      "currency": "SAR",
-      "vat_status": "after vat",
-      "payment_type": "one time payment",
-      "source": "https://example.com/product-page"
-    }
-    // ... more products
+        {
+            "email": "sonyworldsa@modern-electronics.com",
+            "source": "https://sonyworld.sa/en-sa/?srsltid=AfmBOookuw2XUO81jtO2jJEUBpSA4bwyNbY1FfSzgIxNlPLWhwTvukxY"
+        }
+    // ... more email
   ]
 }
 ```
@@ -119,7 +105,7 @@ If no matching documents or valid data are found, the API returns an appropriate
 
 - **`server.py`**: Main entry point of the FastAPI application, defining endpoints and request handling.
 - **`config.py`**: Contains configuration variables, including API keys, URLs, and settings.
-- **`model.py`**: Initializes the ChatGroq LLM and defines functions to process queries and extract product data.
+- **`model.py`**: Initializes the ChatGroq LLM and defines functions to process queries and extract data.
 - **`util.py`**: Provides utility functions for HTML cleaning, conversion, and text processing using Selenium or ZenRows.
 
 ## Customization
