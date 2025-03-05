@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import html2text
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from email_scrapper.config import CHROME_OPTIONS
+from quotaion_module.email_scrapper.config import CHROME_OPTIONS
 from zenrows import ZenRowsClient  
 import os 
 def fetch_html_selenium(url: str, headless: bool = True) -> str:

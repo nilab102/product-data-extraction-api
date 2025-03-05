@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-from price_scrapper.config import (
+from quotaion_module.price_scrapper.config import (
     SERPER_API_KEY,
     LLM_API_KEY,
     SERPER_URL,
@@ -16,8 +16,8 @@ from price_scrapper.config import (
     CHUNK_SIZE,
     CHUNK_OVERLAP,
 )
-from price_scrapper.model import initialize_llm, extract_product_data
-from price_scrapper.util import clean_text
+from quotaion_module.price_scrapper.model import initialize_llm, extract_product_data
+from quotaion_module.price_scrapper.util import clean_text
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import BM25Retriever
