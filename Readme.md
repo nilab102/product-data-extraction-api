@@ -1,4 +1,4 @@
-# Product Data Extraction API
+# Product Data Extraction API 
 
 This repository contains a **Product Data Extraction API** built with [FastAPI](https://fastapi.tiangolo.com/). It leverages multiple tools and services to search for product information online, clean and process HTML content, and extract structured product details using a language model.
 
