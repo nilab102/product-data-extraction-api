@@ -16,7 +16,7 @@ from quotaion_module.price_scrapper.config import (
     CHUNK_SIZE,
     CHUNK_OVERLAP,
 )
-from quotaion_module.price_scrapper.model import initialize_llm, extract_product_data
+from quotaion_module.price_scrapper.model import initialize_llm, extract_product_data,initialize_llm_ollam
 from quotaion_module.price_scrapper.util import clean_text,process_url
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -116,7 +116,7 @@ async def search_endpoint(request: SearchRequest):
     bm25_retriever = BM25Retriever.from_documents(
         [Document(page_content=chunk["page_content"], metadata=chunk["metadata"]) for chunk in chunked_docs]
     )
-    bm25_retriever.k = 20  # Retrieve top 10 relevant chunks
+    bm25_retriever.k = 50  # Retrieve top 10 relevant chunks
     retrieved_chunks = bm25_retriever.get_relevant_documents(query)
     
     # Define the detailed query prompt for extraction
@@ -178,7 +178,8 @@ async def search_endpoint(request: SearchRequest):
 
 
     # Initialize the LLM (ChatGroq in this case)
-    llm = initialize_llm(api_key=LLM_API_KEY)
+    #llm = initialize_llm(api_key=LLM_API_KEY)
+    llm=initialize_llm_ollam()
     final_responses = []
     
     # Process each retrieved chunk using the LLM
@@ -192,7 +193,7 @@ Metadata: {metadata}
 Provide the most accurate and concise response based on the context and query:
 """
         try:
-            response = llm.invoke(prompt_with_context)
+            response = llm.invoke(prompt_with_context, options={"num_ctx": 20000})
             final_responses.append({"response": response.content, "metadata": metadata})
             print(f"processing chunk {i+1}")
         except Exception as e:

@@ -8,6 +8,7 @@ from quotaion_module.price_scrapper.config import CHROME_OPTIONS
 from zenrows import ZenRowsClient  
 import os 
 from langchain.schema import Document
+from playwright.sync_api import sync_playwright
 def fetch_html_selenium(url: str, headless: bool = True) -> str:
     """
     Fetch HTML content from the given URL using Selenium.
@@ -24,6 +25,23 @@ def fetch_html_selenium(url: str, headless: bool = True) -> str:
         return html_content
     finally:
         driver.quit()
+
+# from playwright.sync_api import sync_playwright
+
+# def fetch_html_selenium(url: str, headless: bool = True) -> str:
+#     """
+#     Fetch HTML content from the given URL using Playwright.
+#     Waits 10 seconds after page navigation to ensure full loading.
+#     """
+#     with sync_playwright() as p:
+#         browser = p.chromium.launch(headless=headless)
+#         context = browser.new_context()
+#         page = context.new_page()
+#         page.goto(url)
+#         page.wait_for_timeout(10000)  # Wait for 10,000 ms (10 seconds)
+#         html_content = page.content()
+#         browser.close()
+#         return html_content
 
 def clean_html(html_content: str) -> str:
     """
@@ -77,10 +95,10 @@ def html_to_markdown_with_readability(html_content: str) -> str:
     """
     Converts cleaned HTML content to Markdown format.
     """
-    cleaned_html = clean_html(html_content)
+    #cleaned_html = clean_html(html_content)
     converter = html2text.HTML2Text()
-    converter.ignore_links = False
-    markdown_content = converter.handle(cleaned_html)
+    converter.ignore_links = True
+    markdown_content = converter.handle(html_content)
     return markdown_content
 
 def remove_urls_from_text(text: str) -> str:
@@ -144,6 +162,6 @@ def clean_text(url: str, method: str = "selenium") -> str:
 def process_url(url, method):
     try:
         text_content = clean_text(url, method=method)
-        return Document(page_content=text_content[:10000], metadata={"source": url})
+        return Document(page_content=text_content, metadata={"source": url})
     except Exception as e:
         return (url, str(e))
