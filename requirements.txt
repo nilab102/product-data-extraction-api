@@ -8,3 +8,4 @@ requests
 langchain
 langchain-groq
 zenrows
+markdown
