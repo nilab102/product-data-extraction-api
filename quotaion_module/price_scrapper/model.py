@@ -39,6 +39,59 @@ def process_query_across_chunks(query: str, chunked_docs: list, llm: ChatGroq) -
         except Exception as e:
             print(f"Error processing chunk {i + 1}: {e}")
     return responses
+def process_product(product: dict, metadata: str = None) -> dict:
+    """
+    Processes a single product dictionary by extracting and normalizing its fields.
+    For any missing field, it assigns the default value "Null ".
+    The price field is cleaned and converted to a numeric type if possible.
+    
+    Args:
+        product (dict): The product data dictionary.
+        
+    Returns:
+        dict: A dictionary with normalized product fields.
+    """
+    if not isinstance(product, dict):
+        try:
+            product = json.loads(product)
+        except Exception as e:
+            print(f"Could not parse product: {product}. Error: {e}")
+            return None
+    
+    product_name = product.get("product_name", "Null ")
+    price = product.get("price", "Null ")
+    currency = product.get("currency", "Null ")
+    source = product.get("source", metadata["source"])
+    vat_status = product.get("vat_status", "Null ")
+    payment_type = product.get("payment_type", "Null ")
+    features_of_product = product.get("features_of_product", "Null ")
+    vendor_name = product.get("vendor_name", "Null ")
+    customer_rating = product.get("customer_rating", "Null ")
+
+    # Clean and convert the price if it is not missing
+    if price != "Null ":
+        cleaned_price = re.sub(r'[^\d.]', '', str(price))
+        try:
+            price_val = float(cleaned_price) if '.' in cleaned_price else int(cleaned_price)
+        except ValueError:
+            print(f"Invalid price format: {price}")
+            price_val = "Null "
+    else:
+        price_val = "Null "
+
+    return {
+        "product_name": product_name,
+        "price": price_val,
+        "currency": currency,
+        "source": source,
+        "vat_status": vat_status,
+        "payment_type": payment_type,
+        "features_of_product": features_of_product,
+        "vendor_name": vendor_name,
+        "customer_rating": customer_rating
+    }
+
+
 
 def extract_product_data(responses: list) -> list:
     """
@@ -46,6 +99,9 @@ def extract_product_data(responses: list) -> list:
     For any missing field in the JSON, the field is set to "Null ".
     """
     final_data = []
+    invalid_json = []
+    invalid_data=[]
+
     for res in responses:
         # Find JSON-like arrays in the response
         json_matches = re.findall(r'\[.*?\]', res["response"], re.DOTALL)
@@ -53,42 +109,28 @@ def extract_product_data(responses: list) -> list:
             try:
                 products = json.loads(match)
                 for product in products:
-                    # For each field, provide a default value "Null " if the key is missing
-                    product_name = product.get("product_name", "Null ")
-                    price = product.get("price", "Null ")
-                    currency = product.get("currency", "Null ")
-                    source = product.get("source", "Null ")
-                    vat_status = product.get("vat_status", "Null ")
-                    payment_type = product.get("payment_type", "Null ")
-                    features_of_product = product.get("features_of_product", "Null ")
-                    vendor_name = product.get("vendor_name", "Null ")
-                    customer_rating = product.get("customer_rating", "Null ")
+                    processed_product = process_product(product,res["metadata"])
+                    if processed_product is not None:
+                        final_data.append(processed_product)
 
-                    # Clean and convert the price if it is not missing
-                    if price != "Null ":
-                        cleaned_price = re.sub(r'[^\d.]', '', str(price))
-                        try:
-                            price_val = float(cleaned_price) if '.' in cleaned_price else int(cleaned_price)
-                        except ValueError:
-                            print(f"Invalid price format: {price}")
-                            price_val = "Null "
-                    else:
-                        price_val = "Null "
-
-                    final_data.append({
-                        "product_name": product_name,
-                        "price": price_val,
-                        "currency": currency,
-                        "source": source,
-                        "vat_status": vat_status,
-                        "payment_type": payment_type,
-                        "features_of_product": features_of_product,
-                        "vendor_name": vendor_name,
-                        "customer_rating": customer_rating
-                    })
             except json.JSONDecodeError:
-                print(f"Invalid JSON found: {match}")
+                print(f"Invalid JSON found: {match}" + "}]")
+                try:
+                    salvage = json.loads(match + "}]")
+                    if isinstance(salvage, list):
+                        for prod in salvage:
+                            processed_product = process_product(prod,res["metadata"])
+                            if processed_product is not None:
+                                invalid_data.append(processed_product)
+                    elif isinstance(salvage, dict):
+                        processed_product = process_product(salvage,res["metadata"])
+                        if processed_product is not None:
+                            invalid_data.append(processed_product)
+                except Exception as e:
+                    print(f"Could not salvage invalid JSON for match: {match}. Error: {e}")
+                invalid_json.append(res["response"])
 
+    #final_data.extend(invalid_data)
     # Sort products by price (lowest first). Products with a missing price ("Null ") are placed at the end.
     final_data.sort(key=lambda x: x["price"] if isinstance(x["price"], (int, float)) else float('inf'))
-    return final_data
+    return {'final_data':final_data, 'invalid_json':invalid_data}
